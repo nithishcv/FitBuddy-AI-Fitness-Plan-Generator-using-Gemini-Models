@@ -1,0 +1,16 @@
+[
+  "tests/test_ai_helpers.py::test_user_input_validation",
+  "tests/test_ai_helpers.py::test_workout_schema_requires_seven_days",
+  "tests/test_api.py::test_api_generate",
+  "tests/test_api.py::test_default_model_names_are_valid",
+  "tests/test_api.py::test_generate_workout_form_returns_503_for_quota_error",
+  "tests/test_api.py::test_generate_workout_gemini_falls_back_when_schema_is_rejected",
+  "tests/test_api.py::test_generate_workout_gemini_handles_top_level_day_list",
+  "tests/test_api.py::test_generate_workout_gemini_handles_wrapped_profile_json",
+  "tests/test_api.py::test_health",
+  "tests/test_api.py::test_high_demand_unavailable_error_message_is_helpful",
+  "tests/test_api.py::test_home",
+  "tests/test_api.py::test_quota_exhausted_error_message_is_helpful",
+  "tests/test_api.py::test_settings_refresh_when_environment_changes",
+  "tests/test_api.py::test_unsupported_future_model_names_fall_back_to_default"
+]
