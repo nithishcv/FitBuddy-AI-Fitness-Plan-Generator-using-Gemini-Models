@@ -4,10 +4,14 @@
 
 from __future__ import annotations
 
-from cryptography.__about__ import __author__, __copyright__, __version__
-
 __all__ = [
     "__author__",
     "__copyright__",
     "__version__",
 ]
+
+__version__ = "50.0.1"
+
+
+__author__ = "The Python Cryptographic Authority and individual contributors"
+__copyright__ = f"Copyright 2013-2026 {__author__}"
