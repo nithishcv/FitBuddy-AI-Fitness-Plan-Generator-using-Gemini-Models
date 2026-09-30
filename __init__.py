@@ -1,445 +1,362 @@
-import typing
-from importlib import import_module
-from warnings import warn
+"""
+    pygments.lexers
+    ~~~~~~~~~~~~~~~
 
-from ._migration import getattr_migration
-from .version import VERSION
+    Pygments lexers.
 
-if typing.TYPE_CHECKING:
-    # import of virtually everything is supported via `__getattr__` below,
-    # but we need them here for type checking and IDE support
-    import pydantic_core
-    from pydantic_core.core_schema import (
-        FieldSerializationInfo,
-        SerializationInfo,
-        SerializerFunctionWrapHandler,
-        ValidationInfo,
-        ValidatorFunctionWrapHandler,
-    )
+    :copyright: Copyright 2006-present by the Pygments team, see AUTHORS.
+    :license: BSD, see LICENSE for details.
+"""
 
-    from . import dataclasses
-    from .aliases import AliasChoices, AliasGenerator, AliasPath
-    from .annotated_handlers import GetCoreSchemaHandler, GetJsonSchemaHandler
-    from .config import ConfigDict, with_config
-    from .errors import *
-    from .fields import Field, PrivateAttr, computed_field
-    from .functional_serializers import (
-        PlainSerializer,
-        SerializeAsAny,
-        WrapSerializer,
-        field_serializer,
-        model_serializer,
-    )
-    from .functional_validators import (
-        AfterValidator,
-        BeforeValidator,
-        InstanceOf,
-        ModelWrapValidatorHandler,
-        PlainValidator,
-        SkipValidation,
-        WrapValidator,
-        field_validator,
-        model_validator,
-    )
-    from .json_schema import WithJsonSchema
-    from .main import *
-    from .networks import *
-    from .type_adapter import TypeAdapter
-    from .types import *
-    from .validate_call_decorator import validate_call
-    from .warnings import (
-        PydanticDeprecatedSince20,
-        PydanticDeprecatedSince26,
-        PydanticDeprecatedSince29,
-        PydanticDeprecatedSince210,
-        PydanticDeprecatedSince211,
-        PydanticDeprecationWarning,
-        PydanticExperimentalWarning,
-    )
+import re
+import sys
+import types
+import fnmatch
+from os.path import basename
 
-    # this encourages pycharm to import `ValidationError` from here, not pydantic_core
-    ValidationError = pydantic_core.ValidationError
-    from .deprecated.class_validators import root_validator, validator
-    from .deprecated.config import BaseConfig, Extra
-    from .deprecated.tools import *
-    from .root_model import RootModel
+from pygments.lexers._mapping import LEXERS
+from pygments.modeline import get_filetype_from_buffer
+from pygments.plugin import find_plugin_lexers
+from pygments.util import ClassNotFound, guess_decode
 
-__version__ = VERSION
-__all__ = (
-    # dataclasses
-    'dataclasses',
-    # functional validators
-    'field_validator',
-    'model_validator',
-    'AfterValidator',
-    'BeforeValidator',
-    'PlainValidator',
-    'WrapValidator',
-    'SkipValidation',
-    'InstanceOf',
-    'ModelWrapValidatorHandler',
-    # JSON Schema
-    'WithJsonSchema',
-    # deprecated V1 functional validators, these are imported via `__getattr__` below
-    'root_validator',
-    'validator',
-    # functional serializers
-    'field_serializer',
-    'model_serializer',
-    'PlainSerializer',
-    'SerializeAsAny',
-    'WrapSerializer',
-    # config
-    'ConfigDict',
-    'with_config',
-    # deprecated V1 config, these are imported via `__getattr__` below
-    'BaseConfig',
-    'Extra',
-    # validate_call
-    'validate_call',
-    # errors
-    'PydanticErrorCodes',
-    'PydanticUserError',
-    'PydanticSchemaGenerationError',
-    'PydanticImportError',
-    'PydanticUndefinedAnnotation',
-    'PydanticInvalidForJsonSchema',
-    'PydanticForbiddenQualifier',
-    # fields
-    'Field',
-    'computed_field',
-    'PrivateAttr',
-    # alias
-    'AliasChoices',
-    'AliasGenerator',
-    'AliasPath',
-    # main
-    'BaseModel',
-    'create_model',
-    # network
-    'AnyUrl',
-    'AnyHttpUrl',
-    'FileUrl',
-    'HttpUrl',
-    'FtpUrl',
-    'WebsocketUrl',
-    'AnyWebsocketUrl',
-    'UrlConstraints',
-    'EmailStr',
-    'NameEmail',
-    'IPvAnyAddress',
-    'IPvAnyInterface',
-    'IPvAnyNetwork',
-    'PostgresDsn',
-    'CockroachDsn',
-    'AmqpDsn',
-    'RedisDsn',
-    'MongoDsn',
-    'KafkaDsn',
-    'NatsDsn',
-    'MySQLDsn',
-    'MariaDBDsn',
-    'ClickHouseDsn',
-    'SnowflakeDsn',
-    'validate_email',
-    # root_model
-    'RootModel',
-    # deprecated tools, these are imported via `__getattr__` below
-    'parse_obj_as',
-    'schema_of',
-    'schema_json_of',
-    # types
-    'Strict',
-    'StrictStr',
-    'conbytes',
-    'conlist',
-    'conset',
-    'confrozenset',
-    'constr',
-    'StringConstraints',
-    'ImportString',
-    'conint',
-    'PositiveInt',
-    'NegativeInt',
-    'NonNegativeInt',
-    'NonPositiveInt',
-    'confloat',
-    'PositiveFloat',
-    'NegativeFloat',
-    'NonNegativeFloat',
-    'NonPositiveFloat',
-    'FiniteFloat',
-    'condecimal',
-    'condate',
-    'UUID1',
-    'UUID3',
-    'UUID4',
-    'UUID5',
-    'UUID6',
-    'UUID7',
-    'UUID8',
-    'FilePath',
-    'DirectoryPath',
-    'NewPath',
-    'Json',
-    'Secret',
-    'SecretStr',
-    'SecretBytes',
-    'SocketPath',
-    'StrictBool',
-    'StrictBytes',
-    'StrictInt',
-    'StrictFloat',
-    'PaymentCardNumber',
-    'ByteSize',
-    'PastDate',
-    'FutureDate',
-    'PastDatetime',
-    'FutureDatetime',
-    'AwareDatetime',
-    'NaiveDatetime',
-    'AllowInfNan',
-    'EncoderProtocol',
-    'EncodedBytes',
-    'EncodedStr',
-    'Base64Encoder',
-    'Base64Bytes',
-    'Base64Str',
-    'Base64UrlBytes',
-    'Base64UrlStr',
-    'GetPydanticSchema',
-    'Tag',
-    'Discriminator',
-    'JsonValue',
-    'FailFast',
-    # type_adapter
-    'TypeAdapter',
-    # version
-    '__version__',
-    'VERSION',
-    # warnings
-    'PydanticDeprecatedSince20',
-    'PydanticDeprecatedSince26',
-    'PydanticDeprecatedSince29',
-    'PydanticDeprecatedSince210',
-    'PydanticDeprecatedSince211',
-    'PydanticDeprecationWarning',
-    'PydanticExperimentalWarning',
-    # annotated handlers
-    'GetCoreSchemaHandler',
-    'GetJsonSchemaHandler',
-    # pydantic_core
-    'ValidationError',
-    'ValidationInfo',
-    'SerializationInfo',
-    'ValidatorFunctionWrapHandler',
-    'FieldSerializationInfo',
-    'SerializerFunctionWrapHandler',
-    'OnErrorOmit',
-)
-
-# A mapping of {<member name>: (package, <module name>)} defining dynamic imports
-_dynamic_imports: 'dict[str, tuple[str, str]]' = {
-    'dataclasses': (__spec__.parent, '__module__'),
-    # functional validators
-    'field_validator': (__spec__.parent, '.functional_validators'),
-    'model_validator': (__spec__.parent, '.functional_validators'),
-    'AfterValidator': (__spec__.parent, '.functional_validators'),
-    'BeforeValidator': (__spec__.parent, '.functional_validators'),
-    'PlainValidator': (__spec__.parent, '.functional_validators'),
-    'WrapValidator': (__spec__.parent, '.functional_validators'),
-    'SkipValidation': (__spec__.parent, '.functional_validators'),
-    'InstanceOf': (__spec__.parent, '.functional_validators'),
-    'ModelWrapValidatorHandler': (__spec__.parent, '.functional_validators'),
-    # JSON Schema
-    'WithJsonSchema': (__spec__.parent, '.json_schema'),
-    # functional serializers
-    'field_serializer': (__spec__.parent, '.functional_serializers'),
-    'model_serializer': (__spec__.parent, '.functional_serializers'),
-    'PlainSerializer': (__spec__.parent, '.functional_serializers'),
-    'SerializeAsAny': (__spec__.parent, '.functional_serializers'),
-    'WrapSerializer': (__spec__.parent, '.functional_serializers'),
-    # config
-    'ConfigDict': (__spec__.parent, '.config'),
-    'with_config': (__spec__.parent, '.config'),
-    # validate call
-    'validate_call': (__spec__.parent, '.validate_call_decorator'),
-    # errors
-    'PydanticErrorCodes': (__spec__.parent, '.errors'),
-    'PydanticUserError': (__spec__.parent, '.errors'),
-    'PydanticSchemaGenerationError': (__spec__.parent, '.errors'),
-    'PydanticImportError': (__spec__.parent, '.errors'),
-    'PydanticUndefinedAnnotation': (__spec__.parent, '.errors'),
-    'PydanticInvalidForJsonSchema': (__spec__.parent, '.errors'),
-    'PydanticForbiddenQualifier': (__spec__.parent, '.errors'),
-    # fields
-    'Field': (__spec__.parent, '.fields'),
-    'computed_field': (__spec__.parent, '.fields'),
-    'PrivateAttr': (__spec__.parent, '.fields'),
-    # alias
-    'AliasChoices': (__spec__.parent, '.aliases'),
-    'AliasGenerator': (__spec__.parent, '.aliases'),
-    'AliasPath': (__spec__.parent, '.aliases'),
-    # main
-    'BaseModel': (__spec__.parent, '.main'),
-    'create_model': (__spec__.parent, '.main'),
-    # network
-    'AnyUrl': (__spec__.parent, '.networks'),
-    'AnyHttpUrl': (__spec__.parent, '.networks'),
-    'FileUrl': (__spec__.parent, '.networks'),
-    'HttpUrl': (__spec__.parent, '.networks'),
-    'FtpUrl': (__spec__.parent, '.networks'),
-    'WebsocketUrl': (__spec__.parent, '.networks'),
-    'AnyWebsocketUrl': (__spec__.parent, '.networks'),
-    'UrlConstraints': (__spec__.parent, '.networks'),
-    'EmailStr': (__spec__.parent, '.networks'),
-    'NameEmail': (__spec__.parent, '.networks'),
-    'IPvAnyAddress': (__spec__.parent, '.networks'),
-    'IPvAnyInterface': (__spec__.parent, '.networks'),
-    'IPvAnyNetwork': (__spec__.parent, '.networks'),
-    'PostgresDsn': (__spec__.parent, '.networks'),
-    'CockroachDsn': (__spec__.parent, '.networks'),
-    'AmqpDsn': (__spec__.parent, '.networks'),
-    'RedisDsn': (__spec__.parent, '.networks'),
-    'MongoDsn': (__spec__.parent, '.networks'),
-    'KafkaDsn': (__spec__.parent, '.networks'),
-    'NatsDsn': (__spec__.parent, '.networks'),
-    'MySQLDsn': (__spec__.parent, '.networks'),
-    'MariaDBDsn': (__spec__.parent, '.networks'),
-    'ClickHouseDsn': (__spec__.parent, '.networks'),
-    'SnowflakeDsn': (__spec__.parent, '.networks'),
-    'validate_email': (__spec__.parent, '.networks'),
-    # root_model
-    'RootModel': (__spec__.parent, '.root_model'),
-    # types
-    'Strict': (__spec__.parent, '.types'),
-    'StrictStr': (__spec__.parent, '.types'),
-    'conbytes': (__spec__.parent, '.types'),
-    'conlist': (__spec__.parent, '.types'),
-    'conset': (__spec__.parent, '.types'),
-    'confrozenset': (__spec__.parent, '.types'),
-    'constr': (__spec__.parent, '.types'),
-    'StringConstraints': (__spec__.parent, '.types'),
-    'ImportString': (__spec__.parent, '.types'),
-    'conint': (__spec__.parent, '.types'),
-    'PositiveInt': (__spec__.parent, '.types'),
-    'NegativeInt': (__spec__.parent, '.types'),
-    'NonNegativeInt': (__spec__.parent, '.types'),
-    'NonPositiveInt': (__spec__.parent, '.types'),
-    'confloat': (__spec__.parent, '.types'),
-    'PositiveFloat': (__spec__.parent, '.types'),
-    'NegativeFloat': (__spec__.parent, '.types'),
-    'NonNegativeFloat': (__spec__.parent, '.types'),
-    'NonPositiveFloat': (__spec__.parent, '.types'),
-    'FiniteFloat': (__spec__.parent, '.types'),
-    'condecimal': (__spec__.parent, '.types'),
-    'condate': (__spec__.parent, '.types'),
-    'UUID1': (__spec__.parent, '.types'),
-    'UUID3': (__spec__.parent, '.types'),
-    'UUID4': (__spec__.parent, '.types'),
-    'UUID5': (__spec__.parent, '.types'),
-    'UUID6': (__spec__.parent, '.types'),
-    'UUID7': (__spec__.parent, '.types'),
-    'UUID8': (__spec__.parent, '.types'),
-    'FilePath': (__spec__.parent, '.types'),
-    'DirectoryPath': (__spec__.parent, '.types'),
-    'NewPath': (__spec__.parent, '.types'),
-    'Json': (__spec__.parent, '.types'),
-    'Secret': (__spec__.parent, '.types'),
-    'SecretStr': (__spec__.parent, '.types'),
-    'SecretBytes': (__spec__.parent, '.types'),
-    'StrictBool': (__spec__.parent, '.types'),
-    'StrictBytes': (__spec__.parent, '.types'),
-    'StrictInt': (__spec__.parent, '.types'),
-    'StrictFloat': (__spec__.parent, '.types'),
-    'PaymentCardNumber': (__spec__.parent, '.types'),
-    'ByteSize': (__spec__.parent, '.types'),
-    'PastDate': (__spec__.parent, '.types'),
-    'SocketPath': (__spec__.parent, '.types'),
-    'FutureDate': (__spec__.parent, '.types'),
-    'PastDatetime': (__spec__.parent, '.types'),
-    'FutureDatetime': (__spec__.parent, '.types'),
-    'AwareDatetime': (__spec__.parent, '.types'),
-    'NaiveDatetime': (__spec__.parent, '.types'),
-    'AllowInfNan': (__spec__.parent, '.types'),
-    'EncoderProtocol': (__spec__.parent, '.types'),
-    'EncodedBytes': (__spec__.parent, '.types'),
-    'EncodedStr': (__spec__.parent, '.types'),
-    'Base64Encoder': (__spec__.parent, '.types'),
-    'Base64Bytes': (__spec__.parent, '.types'),
-    'Base64Str': (__spec__.parent, '.types'),
-    'Base64UrlBytes': (__spec__.parent, '.types'),
-    'Base64UrlStr': (__spec__.parent, '.types'),
-    'GetPydanticSchema': (__spec__.parent, '.types'),
-    'Tag': (__spec__.parent, '.types'),
-    'Discriminator': (__spec__.parent, '.types'),
-    'JsonValue': (__spec__.parent, '.types'),
-    'OnErrorOmit': (__spec__.parent, '.types'),
-    'FailFast': (__spec__.parent, '.types'),
-    # type_adapter
-    'TypeAdapter': (__spec__.parent, '.type_adapter'),
-    # warnings
-    'PydanticDeprecatedSince20': (__spec__.parent, '.warnings'),
-    'PydanticDeprecatedSince26': (__spec__.parent, '.warnings'),
-    'PydanticDeprecatedSince29': (__spec__.parent, '.warnings'),
-    'PydanticDeprecatedSince210': (__spec__.parent, '.warnings'),
-    'PydanticDeprecatedSince211': (__spec__.parent, '.warnings'),
-    'PydanticDeprecationWarning': (__spec__.parent, '.warnings'),
-    'PydanticExperimentalWarning': (__spec__.parent, '.warnings'),
-    # annotated handlers
-    'GetCoreSchemaHandler': (__spec__.parent, '.annotated_handlers'),
-    'GetJsonSchemaHandler': (__spec__.parent, '.annotated_handlers'),
-    # pydantic_core stuff
-    'ValidationError': ('pydantic_core', '.'),
-    'ValidationInfo': ('pydantic_core', '.core_schema'),
-    'SerializationInfo': ('pydantic_core', '.core_schema'),
-    'ValidatorFunctionWrapHandler': ('pydantic_core', '.core_schema'),
-    'FieldSerializationInfo': ('pydantic_core', '.core_schema'),
-    'SerializerFunctionWrapHandler': ('pydantic_core', '.core_schema'),
-    # deprecated, mostly not included in __all__
-    'root_validator': (__spec__.parent, '.deprecated.class_validators'),
-    'validator': (__spec__.parent, '.deprecated.class_validators'),
-    'BaseConfig': (__spec__.parent, '.deprecated.config'),
-    'Extra': (__spec__.parent, '.deprecated.config'),
-    'parse_obj_as': (__spec__.parent, '.deprecated.tools'),
-    'schema_of': (__spec__.parent, '.deprecated.tools'),
-    'schema_json_of': (__spec__.parent, '.deprecated.tools'),
-    # deprecated dynamic imports
-    'FieldValidationInfo': ('pydantic_core', '.core_schema'),
-    'GenerateSchema': (__spec__.parent, '._internal._generate_schema'),
+COMPAT = {
+    'Python3Lexer': 'PythonLexer',
+    'Python3TracebackLexer': 'PythonTracebackLexer',
+    'LeanLexer': 'Lean3Lexer',
 }
-_deprecated_dynamic_imports = {'FieldValidationInfo', 'GenerateSchema'}
 
-_getattr_migration = getattr_migration(__name__)
+__all__ = ['get_lexer_by_name', 'get_lexer_for_filename', 'find_lexer_class',
+           'guess_lexer', 'load_lexer_from_file'] + list(LEXERS) + list(COMPAT)
 
-
-def __getattr__(attr_name: str) -> object:
-    if attr_name in _deprecated_dynamic_imports:
-        warn(
-            f'Importing {attr_name} from `pydantic` is deprecated. This feature is either no longer supported, or is not public.',
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    dynamic_attr = _dynamic_imports.get(attr_name)
-    if dynamic_attr is None:
-        return _getattr_migration(attr_name)
-
-    package, module_name = dynamic_attr
-
-    if module_name == '__module__':
-        result = import_module(f'.{attr_name}', package=package)
-        globals()[attr_name] = result
-        return result
-    else:
-        module = import_module(module_name, package=package)
-        result = getattr(module, attr_name)
-        g = globals()
-        for k, (_, v_module_name) in _dynamic_imports.items():
-            if v_module_name == module_name and k not in _deprecated_dynamic_imports:
-                g[k] = getattr(module, k)
-        return result
+_lexer_cache = {}
+_pattern_cache = {}
 
 
-def __dir__() -> 'list[str]':
-    return list(__all__)
+def _fn_matches(fn, glob):
+    """Return whether the supplied file name fn matches pattern filename."""
+    if glob not in _pattern_cache:
+        pattern = _pattern_cache[glob] = re.compile(fnmatch.translate(glob))
+        return pattern.match(fn)
+    return _pattern_cache[glob].match(fn)
+
+
+def _load_lexers(module_name):
+    """Load a lexer (and all others in the module too)."""
+    mod = __import__(module_name, None, None, ['__all__'])
+    for lexer_name in mod.__all__:
+        cls = getattr(mod, lexer_name)
+        _lexer_cache[cls.name] = cls
+
+
+def get_all_lexers(plugins=True):
+    """Return a generator of tuples in the form ``(name, aliases,
+    filenames, mimetypes)`` of all know lexers.
+
+    If *plugins* is true (the default), plugin lexers supplied by entrypoints
+    are also returned.  Otherwise, only builtin ones are considered.
+    """
+    for item in LEXERS.values():
+        yield item[1:]
+    if plugins:
+        for lexer in find_plugin_lexers():
+            yield lexer.name, lexer.aliases, lexer.filenames, lexer.mimetypes
+
+
+def find_lexer_class(name):
+    """
+    Return the `Lexer` subclass that with the *name* attribute as given by
+    the *name* argument.
+    """
+    if name in _lexer_cache:
+        return _lexer_cache[name]
+    # lookup builtin lexers
+    for module_name, lname, aliases, _, _ in LEXERS.values():
+        if name == lname:
+            _load_lexers(module_name)
+            return _lexer_cache[name]
+    # continue with lexers from setuptools entrypoints
+    for cls in find_plugin_lexers():
+        if cls.name == name:
+            return cls
+
+
+def find_lexer_class_by_name(_alias):
+    """
+    Return the `Lexer` subclass that has `alias` in its aliases list, without
+    instantiating it.
+
+    Like `get_lexer_by_name`, but does not instantiate the class.
+
+    Will raise :exc:`pygments.util.ClassNotFound` if no lexer with that alias is
+    found.
+
+    .. versionadded:: 2.2
+    """
+    if not _alias:
+        raise ClassNotFound(f'no lexer for alias {_alias!r} found')
+    # lookup builtin lexers
+    for module_name, name, aliases, _, _ in LEXERS.values():
+        if _alias.lower() in aliases:
+            if name not in _lexer_cache:
+                _load_lexers(module_name)
+            return _lexer_cache[name]
+    # continue with lexers from setuptools entrypoints
+    for cls in find_plugin_lexers():
+        if _alias.lower() in cls.aliases:
+            return cls
+    raise ClassNotFound(f'no lexer for alias {_alias!r} found')
+
+
+def get_lexer_by_name(_alias, **options):
+    """
+    Return an instance of a `Lexer` subclass that has `alias` in its
+    aliases list. The lexer is given the `options` at its
+    instantiation.
+
+    Will raise :exc:`pygments.util.ClassNotFound` if no lexer with that alias is
+    found.
+    """
+    if not _alias:
+        raise ClassNotFound(f'no lexer for alias {_alias!r} found')
+
+    # lookup builtin lexers
+    for module_name, name, aliases, _, _ in LEXERS.values():
+        if _alias.lower() in aliases:
+            if name not in _lexer_cache:
+                _load_lexers(module_name)
+            return _lexer_cache[name](**options)
+    # continue with lexers from setuptools entrypoints
+    for cls in find_plugin_lexers():
+        if _alias.lower() in cls.aliases:
+            return cls(**options)
+    raise ClassNotFound(f'no lexer for alias {_alias!r} found')
+
+
+def load_lexer_from_file(filename, lexername="CustomLexer", **options):
+    """Load a lexer from a file.
+
+    This method expects a file located relative to the current working
+    directory, which contains a Lexer class. By default, it expects the
+    Lexer to be name CustomLexer; you can specify your own class name
+    as the second argument to this function.
+
+    Users should be very careful with the input, because this method
+    is equivalent to running eval on the input file.
+
+    Raises ClassNotFound if there are any problems importing the Lexer.
+
+    .. versionadded:: 2.2
+    """
+    try:
+        # This empty dict will contain the namespace for the exec'd file
+        custom_namespace = {}
+        with open(filename, 'rb') as f:
+            exec(f.read(), custom_namespace)
+        # Retrieve the class `lexername` from that namespace
+        if lexername not in custom_namespace:
+            raise ClassNotFound(f'no valid {lexername} class found in {filename}')
+        lexer_class = custom_namespace[lexername]
+        # And finally instantiate it with the options
+        return lexer_class(**options)
+    except OSError as err:
+        raise ClassNotFound(f'cannot read {filename}: {err}')
+    except ClassNotFound:
+        raise
+    except Exception as err:
+        raise ClassNotFound(f'error when loading custom lexer: {err}')
+
+
+def find_lexer_class_for_filename(_fn, code=None):
+    """Get a lexer for a filename.
+
+    If multiple lexers match the filename pattern, use ``analyse_text()`` to
+    figure out which one is more appropriate.
+
+    Returns None if not found.
+    """
+    matches = []
+    fn = basename(_fn)
+    for modname, name, _, filenames, _ in LEXERS.values():
+        for filename in filenames:
+            if _fn_matches(fn, filename):
+                if name not in _lexer_cache:
+                    _load_lexers(modname)
+                matches.append((_lexer_cache[name], filename))
+    for cls in find_plugin_lexers():
+        for filename in cls.filenames:
+            if _fn_matches(fn, filename):
+                matches.append((cls, filename))
+
+    if isinstance(code, bytes):
+        # decode it, since all analyse_text functions expect unicode
+        code = guess_decode(code)
+
+    def get_rating(info):
+        cls, filename = info
+        # explicit patterns get a bonus
+        bonus = '*' not in filename and 0.5 or 0
+        # The class _always_ defines analyse_text because it's included in
+        # the Lexer class.  The default implementation returns None which
+        # gets turned into 0.0.  Run scripts/detect_missing_analyse_text.py
+        # to find lexers which need it overridden.
+        if code:
+            return cls.analyse_text(code) + bonus, cls.__name__
+        return cls.priority + bonus, cls.__name__
+
+    if matches:
+        matches.sort(key=get_rating)
+        # print "Possible lexers, after sort:", matches
+        return matches[-1][0]
+
+
+def get_lexer_for_filename(_fn, code=None, **options):
+    """Get a lexer for a filename.
+
+    Return a `Lexer` subclass instance that has a filename pattern
+    matching `fn`. The lexer is given the `options` at its
+    instantiation.
+
+    Raise :exc:`pygments.util.ClassNotFound` if no lexer for that filename
+    is found.
+
+    If multiple lexers match the filename pattern, use their ``analyse_text()``
+    methods to figure out which one is more appropriate.
+    """
+    res = find_lexer_class_for_filename(_fn, code)
+    if not res:
+        raise ClassNotFound(f'no lexer for filename {_fn!r} found')
+    return res(**options)
+
+
+def get_lexer_for_mimetype(_mime, **options):
+    """
+    Return a `Lexer` subclass instance that has `mime` in its mimetype
+    list. The lexer is given the `options` at its instantiation.
+
+    Will raise :exc:`pygments.util.ClassNotFound` if not lexer for that mimetype
+    is found.
+    """
+    for modname, name, _, _, mimetypes in LEXERS.values():
+        if _mime in mimetypes:
+            if name not in _lexer_cache:
+                _load_lexers(modname)
+            return _lexer_cache[name](**options)
+    for cls in find_plugin_lexers():
+        if _mime in cls.mimetypes:
+            return cls(**options)
+    raise ClassNotFound(f'no lexer for mimetype {_mime!r} found')
+
+
+def _iter_lexerclasses(plugins=True):
+    """Return an iterator over all lexer classes."""
+    for key in sorted(LEXERS):
+        module_name, name = LEXERS[key][:2]
+        if name not in _lexer_cache:
+            _load_lexers(module_name)
+        yield _lexer_cache[name]
+    if plugins:
+        yield from find_plugin_lexers()
+
+
+def guess_lexer_for_filename(_fn, _text, **options):
+    """
+    As :func:`guess_lexer()`, but only lexers which have a pattern in `filenames`
+    or `alias_filenames` that matches `filename` are taken into consideration.
+
+    :exc:`pygments.util.ClassNotFound` is raised if no lexer thinks it can
+    handle the content.
+    """
+    fn = basename(_fn)
+    primary = {}
+    matching_lexers = set()
+    for lexer in _iter_lexerclasses():
+        for filename in lexer.filenames:
+            if _fn_matches(fn, filename):
+                matching_lexers.add(lexer)
+                primary[lexer] = True
+        for filename in lexer.alias_filenames:
+            if _fn_matches(fn, filename):
+                matching_lexers.add(lexer)
+                primary[lexer] = False
+    if not matching_lexers:
+        raise ClassNotFound(f'no lexer for filename {fn!r} found')
+    if len(matching_lexers) == 1:
+        return matching_lexers.pop()(**options)
+    result = []
+    for lexer in matching_lexers:
+        rv = lexer.analyse_text(_text)
+        if rv == 1.0:
+            return lexer(**options)
+        result.append((rv, lexer))
+
+    def type_sort(t):
+        # sort by:
+        # - analyse score
+        # - is primary filename pattern?
+        # - priority
+        # - last resort: class name
+        return (t[0], primary[t[1]], t[1].priority, t[1].__name__)
+    result.sort(key=type_sort)
+
+    return result[-1][1](**options)
+
+
+def guess_lexer(_text, **options):
+    """
+    Return a `Lexer` subclass instance that's guessed from the text in
+    `text`. For that, the :meth:`.analyse_text()` method of every known lexer
+    class is called with the text as argument, and the lexer which returned the
+    highest value will be instantiated and returned.
+
+    :exc:`pygments.util.ClassNotFound` is raised if no lexer thinks it can
+    handle the content.
+    """
+
+    if not isinstance(_text, str):
+        inencoding = options.get('inencoding', options.get('encoding'))
+        if inencoding:
+            _text = _text.decode(inencoding or 'utf8')
+        else:
+            _text, _ = guess_decode(_text)
+
+    # try to get a vim modeline first
+    ft = get_filetype_from_buffer(_text)
+
+    if ft is not None:
+        try:
+            return get_lexer_by_name(ft, **options)
+        except ClassNotFound:
+            pass
+
+    best_lexer = [0.0, None]
+    for lexer in _iter_lexerclasses():
+        rv = lexer.analyse_text(_text)
+        if rv == 1.0:
+            return lexer(**options)
+        if rv > best_lexer[0]:
+            best_lexer[:] = (rv, lexer)
+    if not best_lexer[0] or best_lexer[1] is None:
+        raise ClassNotFound('no lexer matching the text found')
+    return best_lexer[1](**options)
+
+
+class _automodule(types.ModuleType):
+    """Automatically import lexers."""
+
+    def __getattr__(self, name):
+        info = LEXERS.get(name)
+        if info:
+            _load_lexers(info[0])
+            cls = _lexer_cache[info[1]]
+            setattr(self, name, cls)
+            return cls
+        if name in COMPAT:
+            return getattr(self, COMPAT[name])
+        raise AttributeError(name)
+
+
+oldmod = sys.modules[__name__]
+newmod = _automodule(__name__)
+newmod.__dict__.update(oldmod.__dict__)
+sys.modules[__name__] = newmod
+del newmod.newmod, newmod.oldmod, newmod.sys, newmod.types
