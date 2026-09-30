@@ -1,25 +1,12 @@
-"""distutils.command
+from distutils.command.bdist import bdist
+import sys
 
-Package containing implementation of all the standard Distutils
-commands."""
+if 'egg' not in bdist.format_commands:
+    try:
+        bdist.format_commands['egg'] = ('bdist_egg', "Python .egg file")
+    except TypeError:
+        # For backward compatibility with older distutils (stdlib)
+        bdist.format_command['egg'] = ('bdist_egg', "Python .egg file")
+        bdist.format_commands.append('egg')
 
-__all__ = [  # noqa: F822
-    'build',
-    'build_py',
-    'build_ext',
-    'build_clib',
-    'build_scripts',
-    'clean',
-    'install',
-    'install_lib',
-    'install_headers',
-    'install_scripts',
-    'install_data',
-    'sdist',
-    'register',
-    'bdist',
-    'bdist_dumb',
-    'bdist_rpm',
-    'check',
-    'upload',
-]
+del bdist, sys

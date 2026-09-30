@@ -1,153 +1,146 @@
-"""distutils.command.build
-
-Implements the Distutils 'build' command."""
-
 import sys
-import os
-from distutils.core import Command
-from distutils.errors import DistutilsOptionError
-from distutils.util import get_platform
+import warnings
+from typing import TYPE_CHECKING, List, Dict
+from distutils.command.build import build as _build
+
+from setuptools import SetuptoolsDeprecationWarning
+
+if sys.version_info >= (3, 8):
+    from typing import Protocol
+elif TYPE_CHECKING:
+    from typing_extensions import Protocol
+else:
+    from abc import ABC as Protocol
 
 
-def show_compilers():
-    from distutils.ccompiler import show_compilers
-
-    show_compilers()
+_ORIGINAL_SUBCOMMANDS = {"build_py", "build_clib", "build_ext", "build_scripts"}
 
 
-class build(Command):
+class build(_build):
+    # copy to avoid sharing the object with parent class
+    sub_commands = _build.sub_commands[:]
 
-    description = "build everything needed to install"
+    def get_sub_commands(self):
+        subcommands = {cmd[0] for cmd in _build.sub_commands}
+        if subcommands - _ORIGINAL_SUBCOMMANDS:
+            msg = """
+            It seems that you are using `distutils.command.build` to add
+            new subcommands. Using `distutils` directly is considered deprecated,
+            please use `setuptools.command.build`.
+            """
+            warnings.warn(msg, SetuptoolsDeprecationWarning)
+            self.sub_commands = _build.sub_commands
+        return super().get_sub_commands()
 
-    user_options = [
-        ('build-base=', 'b', "base directory for build library"),
-        ('build-purelib=', None, "build directory for platform-neutral distributions"),
-        ('build-platlib=', None, "build directory for platform-specific distributions"),
-        (
-            'build-lib=',
-            None,
-            "build directory for all distribution (defaults to either "
-            + "build-purelib or build-platlib",
-        ),
-        ('build-scripts=', None, "build directory for scripts"),
-        ('build-temp=', 't', "temporary build directory"),
-        (
-            'plat-name=',
-            'p',
-            "platform name to build for, if supported "
-            "(default: %s)" % get_platform(),
-        ),
-        ('compiler=', 'c', "specify the compiler type"),
-        ('parallel=', 'j', "number of parallel build jobs"),
-        ('debug', 'g', "compile extensions and libraries with debugging information"),
-        ('force', 'f', "forcibly build everything (ignore file timestamps)"),
-        ('executable=', 'e', "specify final destination interpreter path (build.py)"),
-    ]
 
-    boolean_options = ['debug', 'force']
+class SubCommand(Protocol):
+    """In order to support editable installations (see :pep:`660`) all
+    build subcommands **SHOULD** implement this protocol. They also **MUST** inherit
+    from ``setuptools.Command``.
 
-    help_options = [
-        ('help-compiler', None, "list available compilers", show_compilers),
-    ]
+    When creating an :pep:`editable wheel <660>`, ``setuptools`` will try to evaluate
+    custom ``build`` subcommands using the following procedure:
+
+    1. ``setuptools`` will set the ``editable_mode`` attribute to ``True``
+    2. ``setuptools`` will execute the ``run()`` command.
+
+       .. important::
+          Subcommands **SHOULD** take advantage of ``editable_mode=True`` to adequate
+          its behaviour or perform optimisations.
+
+          For example, if a subcommand don't need to generate any extra file and
+          everything it does is to copy a source file into the build directory,
+          ``run()`` **SHOULD** simply "early return".
+
+          Similarly, if the subcommand creates files that would be placed alongside
+          Python files in the final distribution, during an editable install
+          the command **SHOULD** generate these files "in place" (i.e. write them to
+          the original source directory, instead of using the build directory).
+          Note that ``get_output_mapping()`` should reflect that and include mappings
+          for "in place" builds accordingly.
+
+    3. ``setuptools`` use any knowledge it can derive from the return values of
+       ``get_outputs()`` and ``get_output_mapping()`` to create an editable wheel.
+       When relevant ``setuptools`` **MAY** attempt to use file links based on the value
+       of ``get_output_mapping()``. Alternatively, ``setuptools`` **MAY** attempt to use
+       :doc:`import hooks <python:reference/import>` to redirect any attempt to import
+       to the directory with the original source code and other files built in place.
+
+    Please note that custom sub-commands **SHOULD NOT** rely on ``run()`` being
+    executed (or not) to provide correct return values for ``get_outputs()``,
+    ``get_output_mapping()`` or ``get_source_files()``. The ``get_*`` methods should
+    work independently of ``run()``.
+    """
+
+    editable_mode: bool = False
+    """Boolean flag that will be set to ``True`` when setuptools is used for an
+    editable installation (see :pep:`660`).
+    Implementations **SHOULD** explicitly set the default value of this attribute to
+    ``False``.
+    When subcommands run, they can use this flag to perform optimizations or change
+    their behaviour accordingly.
+    """
+
+    build_lib: str
+    """String representing the directory where the build artifacts should be stored,
+    e.g. ``build/lib``.
+    For example, if a distribution wants to provide a Python module named ``pkg.mod``,
+    then a corresponding file should be written to ``{build_lib}/package/module.py``.
+    A way of thinking about this is that the files saved under ``build_lib``
+    would be eventually copied to one of the directories in :obj:`site.PREFIXES`
+    upon installation.
+
+    A command that produces platform-independent files (e.g. compiling text templates
+    into Python functions), **CAN** initialize ``build_lib`` by copying its value from
+    the ``build_py`` command. On the other hand, a command that produces
+    platform-specific files **CAN** initialize ``build_lib`` by copying its value from
+    the ``build_ext`` command. In general this is done inside the ``finalize_options``
+    method with the help of the ``set_undefined_options`` command::
+
+        def finalize_options(self):
+            self.set_undefined_options("build_py", ("build_lib", "build_lib"))
+            ...
+    """
 
     def initialize_options(self):
-        self.build_base = 'build'
-        # these are decided only after 'build_base' has its final value
-        # (unless overridden by the user or client)
-        self.build_purelib = None
-        self.build_platlib = None
-        self.build_lib = None
-        self.build_temp = None
-        self.build_scripts = None
-        self.compiler = None
-        self.plat_name = None
-        self.debug = None
-        self.force = 0
-        self.executable = None
-        self.parallel = None
+        """(Required by the original :class:`setuptools.Command` interface)"""
 
-    def finalize_options(self):  # noqa: C901
-        if self.plat_name is None:
-            self.plat_name = get_platform()
-        else:
-            # plat-name only supported for windows (other platforms are
-            # supported via ./configure flags, if at all).  Avoid misleading
-            # other platforms.
-            if os.name != 'nt':
-                raise DistutilsOptionError(
-                    "--plat-name only supported on Windows (try "
-                    "using './configure --help' on your platform)"
-                )
-
-        plat_specifier = ".{}-{}".format(self.plat_name, sys.implementation.cache_tag)
-
-        # Make it so Python 2.x and Python 2.x with --with-pydebug don't
-        # share the same build directories. Doing so confuses the build
-        # process for C modules
-        if hasattr(sys, 'gettotalrefcount'):
-            plat_specifier += '-pydebug'
-
-        # 'build_purelib' and 'build_platlib' just default to 'lib' and
-        # 'lib.<plat>' under the base build directory.  We only use one of
-        # them for a given distribution, though --
-        if self.build_purelib is None:
-            self.build_purelib = os.path.join(self.build_base, 'lib')
-        if self.build_platlib is None:
-            self.build_platlib = os.path.join(self.build_base, 'lib' + plat_specifier)
-
-        # 'build_lib' is the actual directory that we will use for this
-        # particular module distribution -- if user didn't supply it, pick
-        # one of 'build_purelib' or 'build_platlib'.
-        if self.build_lib is None:
-            if self.distribution.has_ext_modules():
-                self.build_lib = self.build_platlib
-            else:
-                self.build_lib = self.build_purelib
-
-        # 'build_temp' -- temporary directory for compiler turds,
-        # "build/temp.<plat>"
-        if self.build_temp is None:
-            self.build_temp = os.path.join(self.build_base, 'temp' + plat_specifier)
-        if self.build_scripts is None:
-            self.build_scripts = os.path.join(
-                self.build_base, 'scripts-%d.%d' % sys.version_info[:2]
-            )
-
-        if self.executable is None and sys.executable:
-            self.executable = os.path.normpath(sys.executable)
-
-        if isinstance(self.parallel, str):
-            try:
-                self.parallel = int(self.parallel)
-            except ValueError:
-                raise DistutilsOptionError("parallel should be an integer")
+    def finalize_options(self):
+        """(Required by the original :class:`setuptools.Command` interface)"""
 
     def run(self):
-        # Run all relevant sub-commands.  This will be some subset of:
-        #  - build_py      - pure Python modules
-        #  - build_clib    - standalone C libraries
-        #  - build_ext     - Python extensions
-        #  - build_scripts - (Python) scripts
-        for cmd_name in self.get_sub_commands():
-            self.run_command(cmd_name)
+        """(Required by the original :class:`setuptools.Command` interface)"""
 
-    # -- Predicates for the sub-command list ---------------------------
+    def get_source_files(self) -> List[str]:
+        """
+        Return a list of all files that are used by the command to create the expected
+        outputs.
+        For example, if your build command transpiles Java files into Python, you should
+        list here all the Java files.
+        The primary purpose of this function is to help populating the ``sdist``
+        with all the files necessary to build the distribution.
+        All files should be strings relative to the project root directory.
+        """
 
-    def has_pure_modules(self):
-        return self.distribution.has_pure_modules()
+    def get_outputs(self) -> List[str]:
+        """
+        Return a list of files intended for distribution as they would have been
+        produced by the build.
+        These files should be strings in the form of
+        ``"{build_lib}/destination/file/path"``.
 
-    def has_c_libraries(self):
-        return self.distribution.has_c_libraries()
+        .. note::
+           The return value of ``get_output()`` should include all files used as keys
+           in ``get_output_mapping()`` plus files that are generated during the build
+           and don't correspond to any source file already present in the project.
+        """
 
-    def has_ext_modules(self):
-        return self.distribution.has_ext_modules()
-
-    def has_scripts(self):
-        return self.distribution.has_scripts()
-
-    sub_commands = [
-        ('build_py', has_pure_modules),
-        ('build_clib', has_c_libraries),
-        ('build_ext', has_ext_modules),
-        ('build_scripts', has_scripts),
-    ]
+    def get_output_mapping(self) -> Dict[str, str]:
+        """
+        Return a mapping between destination files as they would be produced by the
+        build (dict keys) into the respective existing (source) files (dict values).
+        Existing (source) files should be represented as strings relative to the project
+        root directory.
+        Destination files should be strings in the form of
+        ``"{build_lib}/destination/file/path"``.
+        """
