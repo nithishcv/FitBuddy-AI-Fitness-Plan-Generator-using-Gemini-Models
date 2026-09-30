@@ -1,4 +1,4 @@
-"""The `utils` module is a backport module from V1."""
+"""The `schema` module is a backport module from V1."""
 
 from ._migration import getattr_migration
 
