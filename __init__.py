@@ -1,62 +1,62 @@
-# -*- coding: utf-8 -*-
-"""
-The root of the greenlet package.
-"""
+# A highish-level implementation of the HTTP/1.1 wire protocol (RFC 7230),
+# containing no networking code at all, loosely modelled on hyper-h2's generic
+# implementation of HTTP/2 (and in particular the h2.connection.H2Connection
+# class). There's still a bunch of subtle details you need to get right if you
+# want to make this actually useful, because it doesn't implement all the
+# semantics to check that what you're asking to write to the wire is sensible,
+# but at least it gets you out of dealing with the wire itself.
 
-__all__ = [
-    '__version__',
-    '_C_API',
+from h11._connection import Connection, NEED_DATA, PAUSED
+from h11._events import (
+    ConnectionClosed,
+    Data,
+    EndOfMessage,
+    Event,
+    InformationalResponse,
+    Request,
+    Response,
+)
+from h11._state import (
+    CLIENT,
+    CLOSED,
+    DONE,
+    ERROR,
+    IDLE,
+    MIGHT_SWITCH_PROTOCOL,
+    MUST_CLOSE,
+    SEND_BODY,
+    SEND_RESPONSE,
+    SERVER,
+    SWITCHED_PROTOCOL,
+)
+from h11._util import LocalProtocolError, ProtocolError, RemoteProtocolError
+from h11._version import __version__
 
-    'GreenletExit',
-    'error',
+PRODUCT_ID = "python-h11/" + __version__
 
-    'getcurrent',
-    'greenlet',
 
-    'gettrace',
-    'settrace',
-]
-
-# pylint:disable=no-name-in-module
-
-###
-# Metadata
-###
-__version__ = '3.5.6'
-from ._greenlet import _C_API # pylint:disable=no-name-in-module
-
-###
-# Exceptions
-###
-from ._greenlet import GreenletExit
-from ._greenlet import error
-
-###
-# greenlets
-###
-from ._greenlet import getcurrent
-from ._greenlet import greenlet
-
-###
-# tracing
-###
-from ._greenlet import gettrace
-from ._greenlet import settrace
-
-###
-# Constants
-# These constants aren't documented and aren't recommended.
-# In 1.0, USE_GC and USE_TRACING are always true, and USE_CONTEXT_VARS
-# is the same as ``sys.version_info[:2] >= 3.7``
-###
-from ._greenlet import GREENLET_USE_CONTEXT_VARS # pylint:disable=unused-import
-from ._greenlet import GREENLET_USE_GC # pylint:disable=unused-import
-from ._greenlet import GREENLET_USE_TRACING # pylint:disable=unused-import
-
-# Controlling the use of the gc module. Provisional API for this greenlet
-# implementation in 2.0.
-from ._greenlet import CLOCKS_PER_SEC # pylint:disable=unused-import
-from ._greenlet import enable_optional_cleanup # pylint:disable=unused-import
-from ._greenlet import get_clocks_used_doing_optional_cleanup # pylint:disable=unused-import
-
-# Other APIS in the _greenlet module are for test support.
+__all__ = (
+    "Connection",
+    "NEED_DATA",
+    "PAUSED",
+    "ConnectionClosed",
+    "Data",
+    "EndOfMessage",
+    "Event",
+    "InformationalResponse",
+    "Request",
+    "Response",
+    "CLIENT",
+    "CLOSED",
+    "DONE",
+    "ERROR",
+    "IDLE",
+    "MUST_CLOSE",
+    "SEND_BODY",
+    "SEND_RESPONSE",
+    "SERVER",
+    "SWITCHED_PROTOCOL",
+    "ProtocolError",
+    "LocalProtocolError",
+    "RemoteProtocolError",
+)
