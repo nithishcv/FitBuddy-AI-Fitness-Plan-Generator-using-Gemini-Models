@@ -1,25 +1,62 @@
-# Copyright 2025 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+# -*- coding: utf-8 -*-
+"""
+The root of the greenlet package.
+"""
 
-"""Google Gen AI SDK"""
+__all__ = [
+    '__version__',
+    '_C_API',
 
-from . import types
-from . import version
-from .client import Client
+    'GreenletExit',
+    'error',
 
+    'getcurrent',
+    'greenlet',
 
-__version__ = version.__version__
+    'gettrace',
+    'settrace',
+]
 
-__all__ = ['Client']
+# pylint:disable=no-name-in-module
+
+###
+# Metadata
+###
+__version__ = '3.5.6'
+from ._greenlet import _C_API # pylint:disable=no-name-in-module
+
+###
+# Exceptions
+###
+from ._greenlet import GreenletExit
+from ._greenlet import error
+
+###
+# greenlets
+###
+from ._greenlet import getcurrent
+from ._greenlet import greenlet
+
+###
+# tracing
+###
+from ._greenlet import gettrace
+from ._greenlet import settrace
+
+###
+# Constants
+# These constants aren't documented and aren't recommended.
+# In 1.0, USE_GC and USE_TRACING are always true, and USE_CONTEXT_VARS
+# is the same as ``sys.version_info[:2] >= 3.7``
+###
+from ._greenlet import GREENLET_USE_CONTEXT_VARS # pylint:disable=unused-import
+from ._greenlet import GREENLET_USE_GC # pylint:disable=unused-import
+from ._greenlet import GREENLET_USE_TRACING # pylint:disable=unused-import
+
+# Controlling the use of the gc module. Provisional API for this greenlet
+# implementation in 2.0.
+from ._greenlet import CLOCKS_PER_SEC # pylint:disable=unused-import
+from ._greenlet import enable_optional_cleanup # pylint:disable=unused-import
+from ._greenlet import get_clocks_used_doing_optional_cleanup # pylint:disable=unused-import
+
+# Other APIS in the _greenlet module are for test support.
