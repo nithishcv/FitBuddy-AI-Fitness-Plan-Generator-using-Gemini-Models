@@ -1,189 +1,127 @@
-"""Pydantic-specific errors."""
+"""distutils.errors
 
-from __future__ import annotations as _annotations
+Provides exceptions used by the Distutils modules.  Note that Distutils
+modules may raise standard exceptions; in particular, SystemExit is
+usually raised for errors that are obviously the end-user's fault
+(eg. bad command-line arguments).
 
-import re
-from typing import Any, ClassVar, Literal
-
-from typing_extensions import Self
-from typing_inspection.introspection import Qualifier
-
-from pydantic._internal import _repr
-
-from ._migration import getattr_migration
-from .version import version_short
-
-__all__ = (
-    'PydanticUserError',
-    'PydanticUndefinedAnnotation',
-    'PydanticImportError',
-    'PydanticSchemaGenerationError',
-    'PydanticInvalidForJsonSchema',
-    'PydanticForbiddenQualifier',
-    'PydanticErrorCodes',
-)
-
-# We use this URL to allow for future flexibility about how we host the docs, while allowing for Pydantic
-# code in the while with "old" URLs to still work.
-# 'u' refers to "user errors" - e.g. errors caused by developers using pydantic, as opposed to validation errors.
-DEV_ERROR_DOCS_URL = f'https://errors.pydantic.dev/{version_short()}/u/'
-PydanticErrorCodes = Literal[
-    'class-not-fully-defined',
-    'custom-json-schema',
-    'decorator-missing-field',
-    'discriminator-no-field',
-    'discriminator-alias-type',
-    'discriminator-needs-literal',
-    'discriminator-alias',
-    'discriminator-validator',
-    'callable-discriminator-no-tag',
-    'typed-dict-version',
-    'model-field-overridden',
-    'model-field-missing-annotation',
-    'config-both',
-    'removed-kwargs',
-    'circular-reference-schema',
-    'invalid-for-json-schema',
-    'json-schema-already-used',
-    'base-model-instantiated',
-    'undefined-annotation',
-    'schema-for-unknown-type',
-    'import-error',
-    'create-model-field-definitions',
-    'validator-no-fields',
-    'validator-invalid-fields',
-    'validator-instance-method',
-    'validator-input-type',
-    'root-validator-pre-skip',
-    'model-serializer-instance-method',
-    'validator-field-config-info',
-    'validator-v1-signature',
-    'validator-signature',
-    'field-serializer-signature',
-    'model-serializer-signature',
-    'multiple-field-serializers',
-    'invalid-annotated-type',
-    'type-adapter-config-unused',
-    'root-model-extra',
-    'unevaluable-type-annotation',
-    'dataclass-init-false-extra-allow',
-    'clashing-init-and-init-var',
-    'model-config-invalid-field-name',
-    'with-config-on-model',
-    'dataclass-on-model',
-    'validate-call-type',
-    'unpack-typed-dict',
-    'overlapping-unpack-typed-dict',
-    'invalid-self-type',
-    'validate-by-alias-and-name-false',
-]
+This module is safe to use in "from ... import *" mode; it only exports
+symbols whose names start with "Distutils" and end with "Error"."""
 
 
-class PydanticErrorMixin:
-    """A mixin class for common functionality shared by all Pydantic-specific errors.
+class DistutilsError(Exception):
+    """The root of all Distutils evil."""
 
-    Attributes:
-        message: A message describing the error.
-        code: An optional error code from PydanticErrorCodes enum.
-    """
-
-    def __init__(self, message: str, *, code: PydanticErrorCodes | None) -> None:
-        self.message = message
-        self.code = code
-
-    def __str__(self) -> str:
-        if self.code is None:
-            return self.message
-        else:
-            return f'{self.message}\n\nFor further information visit {DEV_ERROR_DOCS_URL}{self.code}'
+    pass
 
 
-class PydanticUserError(PydanticErrorMixin, TypeError):
-    """An error raised due to incorrect use of Pydantic."""
+class DistutilsModuleError(DistutilsError):
+    """Unable to load an expected module, or to find an expected class
+    within some module (in particular, command modules and classes)."""
+
+    pass
 
 
-class PydanticUndefinedAnnotation(PydanticErrorMixin, NameError):
-    """A subclass of `NameError` raised when handling undefined annotations during `CoreSchema` generation.
+class DistutilsClassError(DistutilsError):
+    """Some command class (or possibly distribution class, if anyone
+    feels a need to subclass Distribution) is found not to be holding
+    up its end of the bargain, ie. implementing some part of the
+    "command "interface."""
 
-    Attributes:
-        name: Name of the error.
-        message: Description of the error.
-    """
-
-    def __init__(self, name: str, message: str) -> None:
-        self.name = name
-        super().__init__(message=message, code='undefined-annotation')
-
-    @classmethod
-    def from_name_error(cls, name_error: NameError) -> Self:
-        """Convert a `NameError` to a `PydanticUndefinedAnnotation` error.
-
-        Args:
-            name_error: `NameError` to be converted.
-
-        Returns:
-            Converted `PydanticUndefinedAnnotation` error.
-        """
-        try:
-            name = name_error.name  # type: ignore  # python > 3.10
-        except AttributeError:
-            name = re.search(r".*'(.+?)'", str(name_error)).group(1)  # type: ignore[union-attr]
-        return cls(name=name, message=str(name_error))
+    pass
 
 
-class PydanticImportError(PydanticErrorMixin, ImportError):
-    """An error raised when an import fails due to module changes between V1 and V2.
+class DistutilsGetoptError(DistutilsError):
+    """The option table provided to 'fancy_getopt()' is bogus."""
 
-    Attributes:
-        message: Description of the error.
-    """
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message, code='import-error')
+    pass
 
 
-class PydanticSchemaGenerationError(PydanticUserError):
-    """An error raised during failures to generate a `CoreSchema` for some type.
+class DistutilsArgError(DistutilsError):
+    """Raised by fancy_getopt in response to getopt.error -- ie. an
+    error in the command line usage."""
 
-    Attributes:
-        message: Description of the error.
-    """
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message, code='schema-for-unknown-type')
+    pass
 
 
-class PydanticInvalidForJsonSchema(PydanticUserError):
-    """An error raised during failures to generate a JSON schema for some `CoreSchema`.
+class DistutilsFileError(DistutilsError):
+    """Any problems in the filesystem: expected file not found, etc.
+    Typically this is for problems that we detect before OSError
+    could be raised."""
 
-    Attributes:
-        message: Description of the error.
-    """
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message, code='invalid-for-json-schema')
+    pass
 
 
-class PydanticForbiddenQualifier(PydanticUserError):
-    """An error raised if a forbidden type qualifier is found in a type annotation."""
+class DistutilsOptionError(DistutilsError):
+    """Syntactic/semantic errors in command options, such as use of
+    mutually conflicting options, or inconsistent options,
+    badly-spelled values, etc.  No distinction is made between option
+    values originating in the setup script, the command line, config
+    files, or what-have-you -- but if we *know* something originated in
+    the setup script, we'll raise DistutilsSetupError instead."""
 
-    _qualifier_repr_map: ClassVar[dict[Qualifier, str]] = {
-        'required': 'typing.Required',
-        'not_required': 'typing.NotRequired',
-        'read_only': 'typing.ReadOnly',
-        'class_var': 'typing.ClassVar',
-        'init_var': 'dataclasses.InitVar',
-        'final': 'typing.Final',
-    }
-
-    def __init__(self, qualifier: Qualifier, annotation: Any) -> None:
-        super().__init__(
-            message=(
-                f'The annotation {_repr.display_as_type(annotation)!r} contains the {self._qualifier_repr_map[qualifier]!r} '
-                f'type qualifier, which is invalid in the context it is defined.'
-            ),
-            code=None,
-        )
+    pass
 
 
-__getattr__ = getattr_migration(__name__)
+class DistutilsSetupError(DistutilsError):
+    """For errors that can be definitely blamed on the setup script,
+    such as invalid keyword arguments to 'setup()'."""
+
+    pass
+
+
+class DistutilsPlatformError(DistutilsError):
+    """We don't know how to do something on the current platform (but
+    we do know how to do it on some platform) -- eg. trying to compile
+    C files on a platform not supported by a CCompiler subclass."""
+
+    pass
+
+
+class DistutilsExecError(DistutilsError):
+    """Any problems executing an external program (such as the C
+    compiler, when compiling C files)."""
+
+    pass
+
+
+class DistutilsInternalError(DistutilsError):
+    """Internal inconsistencies or impossibilities (obviously, this
+    should never be seen if the code is working!)."""
+
+    pass
+
+
+class DistutilsTemplateError(DistutilsError):
+    """Syntax error in a file list template."""
+
+
+class DistutilsByteCompileError(DistutilsError):
+    """Byte compile error."""
+
+
+# Exception classes used by the CCompiler implementation classes
+class CCompilerError(Exception):
+    """Some compile/link operation failed."""
+
+
+class PreprocessError(CCompilerError):
+    """Failure to preprocess one or more C/C++ files."""
+
+
+class CompileError(CCompilerError):
+    """Failure to compile one or more C/C++ source files."""
+
+
+class LibError(CCompilerError):
+    """Failure to create a static library from one or more C/C++ object
+    files."""
+
+
+class LinkError(CCompilerError):
+    """Failure to link one or more C/C++ object files into an executable
+    or shared library file."""
+
+
+class UnknownFileError(CCompilerError):
+    """Attempt to process an unknown file type."""
