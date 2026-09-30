@@ -11,12 +11,14 @@ compatibility until the next major version.
 
 from __future__ import annotations
 
+import importlib
 import sys
+from types import ModuleType
 
 # -------
 # urllib3
 # -------
-from pip._vendor.urllib3 import (
+from urllib3 import (
     __version__ as urllib3_version,  # type: ignore[reportPrivateImportUsage]
 )
 
@@ -32,9 +34,15 @@ except (TypeError, AttributeError):
 # -------------------
 
 
-def _resolve_char_detection() -> None:
+def _resolve_char_detection() -> ModuleType | None:
     """Find supported character detection libraries."""
     chardet = None
+    for lib in ("chardet", "charset_normalizer"):
+        if chardet is None:
+            try:
+                chardet = importlib.import_module(lib)
+            except ImportError:
+                pass
     return chardet
 
 
@@ -53,10 +61,19 @@ is_py2 = _ver[0] == 2
 #: Python 3.x?
 is_py3 = _ver[0] == 3
 
-# Note: We've patched out simplejson support in pip because it prevents
-#       upgrading simplejson on Windows.
-import json
-from json import JSONDecodeError
+# json/simplejson module import resolution
+has_simplejson = False
+try:
+    import simplejson as json  # type: ignore[import-not-found]
+
+    has_simplejson = True
+except ImportError:
+    import json
+
+if has_simplejson:
+    from simplejson import JSONDecodeError  # type: ignore[import-not-found]
+else:
+    from json import JSONDecodeError
 
 # Keep OrderedDict for backwards compatibility.
 from collections import OrderedDict

@@ -30,7 +30,7 @@ from typing import (
     overload,
 )
 
-from pip._vendor.urllib3.util import make_headers, parse_url
+from urllib3.util import make_headers, parse_url
 
 from . import certs
 from .__version__ import __version__

@@ -8,16 +8,23 @@ import ssl
 import sys
 from typing import Any
 
-from pip._vendor import idna
-from pip._vendor import urllib3
+import idna
+import urllib3
 
 from . import __version__ as requests_version
 
-charset_normalizer = None
-chardet = None
+try:
+    import charset_normalizer
+except ImportError:
+    charset_normalizer = None
 
 try:
-    from pip._vendor.urllib3.contrib import pyopenssl
+    import chardet  # type: ignore[import-not-found]
+except ImportError:
+    chardet = None
+
+try:
+    from urllib3.contrib import pyopenssl
 except ImportError:
     pyopenssl = None
     OpenSSL = None

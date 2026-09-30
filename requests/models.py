@@ -24,16 +24,16 @@ from typing import (
     overload,
 )
 
-from pip._vendor.urllib3.exceptions import (
+from urllib3.exceptions import (
     DecodeError,
     LocationParseError,
     ProtocolError,
     ReadTimeoutError,
     SSLError,
 )
-from pip._vendor.urllib3.fields import RequestField
-from pip._vendor.urllib3.filepost import encode_multipart_formdata
-from pip._vendor.urllib3.util import parse_url
+from urllib3.fields import RequestField
+from urllib3.filepost import encode_multipart_formdata
+from urllib3.util import parse_url
 
 from ._internal_utils import to_native_string, unicode_is_ascii
 from ._types import SupportsRead as _SupportsRead
@@ -470,7 +470,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
 
     @staticmethod
     def _get_idna_encoded_host(host: str) -> str:
-        from pip._vendor import idna
+        import idna
 
         try:
             host = idna.encode(host, uts46=True).decode("utf-8")

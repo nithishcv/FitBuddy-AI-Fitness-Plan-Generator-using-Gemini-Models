@@ -14,7 +14,7 @@ import typing
 import warnings
 from typing import Any
 
-from pip._vendor.urllib3.exceptions import (
+from urllib3.exceptions import (
     ClosedPoolError,
     ConnectTimeoutError,
     LocationValueError,
@@ -24,14 +24,14 @@ from pip._vendor.urllib3.exceptions import (
     ReadTimeoutError,
     ResponseError,
 )
-from pip._vendor.urllib3.exceptions import HTTPError as _HTTPError
-from pip._vendor.urllib3.exceptions import InvalidHeader as _InvalidHeader
-from pip._vendor.urllib3.exceptions import ProxyError as _ProxyError
-from pip._vendor.urllib3.exceptions import SSLError as _SSLError
-from pip._vendor.urllib3.poolmanager import PoolManager, proxy_from_url
-from pip._vendor.urllib3.util import Timeout as TimeoutSauce
-from pip._vendor.urllib3.util import parse_url
-from pip._vendor.urllib3.util.retry import Retry
+from urllib3.exceptions import HTTPError as _HTTPError
+from urllib3.exceptions import InvalidHeader as _InvalidHeader
+from urllib3.exceptions import ProxyError as _ProxyError
+from urllib3.exceptions import SSLError as _SSLError
+from urllib3.poolmanager import PoolManager, proxy_from_url
+from urllib3.util import Timeout as TimeoutSauce
+from urllib3.util import parse_url
+from urllib3.util.retry import Retry
 
 from .auth import _basic_auth_str  # type: ignore[reportPrivateUsage]
 from .compat import basestring, urlparse
@@ -60,7 +60,7 @@ from .utils import (
 )
 
 try:
-    from pip._vendor.urllib3.contrib.socks import SOCKSProxyManager  # type: ignore[assignment]
+    from urllib3.contrib.socks import SOCKSProxyManager  # type: ignore[assignment]
 except ImportError:
 
     def SOCKSProxyManager(*args: Any, **kwargs: Any) -> None:
@@ -68,8 +68,8 @@ except ImportError:
 
 
 if typing.TYPE_CHECKING:
-    from pip._vendor.urllib3.connectionpool import HTTPConnectionPool
-    from pip._vendor.urllib3.poolmanager import PoolManager as _PoolManager
+    from urllib3.connectionpool import HTTPConnectionPool
+    from urllib3.poolmanager import PoolManager as _PoolManager
 
     from . import _types as _t
     from .models import PreparedRequest
