@@ -1,127 +1,58 @@
-"""distutils.errors
+"""setuptools.errors
 
-Provides exceptions used by the Distutils modules.  Note that Distutils
-modules may raise standard exceptions; in particular, SystemExit is
-usually raised for errors that are obviously the end-user's fault
-(eg. bad command-line arguments).
+Provides exceptions used by setuptools modules.
+"""
 
-This module is safe to use in "from ... import *" mode; it only exports
-symbols whose names start with "Distutils" and end with "Error"."""
+from distutils import errors as _distutils_errors
 
 
-class DistutilsError(Exception):
-    """The root of all Distutils evil."""
+# Re-export errors from distutils to facilitate the migration to PEP632
 
-    pass
+ByteCompileError = _distutils_errors.DistutilsByteCompileError
+CCompilerError = _distutils_errors.CCompilerError
+ClassError = _distutils_errors.DistutilsClassError
+CompileError = _distutils_errors.CompileError
+ExecError = _distutils_errors.DistutilsExecError
+FileError = _distutils_errors.DistutilsFileError
+InternalError = _distutils_errors.DistutilsInternalError
+LibError = _distutils_errors.LibError
+LinkError = _distutils_errors.LinkError
+ModuleError = _distutils_errors.DistutilsModuleError
+OptionError = _distutils_errors.DistutilsOptionError
+PlatformError = _distutils_errors.DistutilsPlatformError
+PreprocessError = _distutils_errors.PreprocessError
+SetupError = _distutils_errors.DistutilsSetupError
+TemplateError = _distutils_errors.DistutilsTemplateError
+UnknownFileError = _distutils_errors.UnknownFileError
 
-
-class DistutilsModuleError(DistutilsError):
-    """Unable to load an expected module, or to find an expected class
-    within some module (in particular, command modules and classes)."""
-
-    pass
-
-
-class DistutilsClassError(DistutilsError):
-    """Some command class (or possibly distribution class, if anyone
-    feels a need to subclass Distribution) is found not to be holding
-    up its end of the bargain, ie. implementing some part of the
-    "command "interface."""
-
-    pass
-
-
-class DistutilsGetoptError(DistutilsError):
-    """The option table provided to 'fancy_getopt()' is bogus."""
-
-    pass
+# The root error class in the hierarchy
+BaseError = _distutils_errors.DistutilsError
 
 
-class DistutilsArgError(DistutilsError):
-    """Raised by fancy_getopt in response to getopt.error -- ie. an
-    error in the command line usage."""
+class RemovedCommandError(BaseError, RuntimeError):
+    """Error used for commands that have been removed in setuptools.
 
-    pass
-
-
-class DistutilsFileError(DistutilsError):
-    """Any problems in the filesystem: expected file not found, etc.
-    Typically this is for problems that we detect before OSError
-    could be raised."""
-
-    pass
+    Since ``setuptools`` is built on ``distutils``, simply removing a command
+    from ``setuptools`` will make the behavior fall back to ``distutils``; this
+    error is raised if a command exists in ``distutils`` but has been actively
+    removed in ``setuptools``.
+    """
 
 
-class DistutilsOptionError(DistutilsError):
-    """Syntactic/semantic errors in command options, such as use of
-    mutually conflicting options, or inconsistent options,
-    badly-spelled values, etc.  No distinction is made between option
-    values originating in the setup script, the command line, config
-    files, or what-have-you -- but if we *know* something originated in
-    the setup script, we'll raise DistutilsSetupError instead."""
+class PackageDiscoveryError(BaseError, RuntimeError):
+    """Impossible to perform automatic discovery of packages and/or modules.
 
-    pass
+    The current project layout or given discovery options can lead to problems when
+    scanning the project directory.
 
+    Setuptools might also refuse to complete auto-discovery if an error prone condition
+    is detected (e.g. when a project is organised as a flat-layout but contains
+    multiple directories that can be taken as top-level packages inside a single
+    distribution [*]_). In these situations the users are encouraged to be explicit
+    about which packages to include or to make the discovery parameters more specific.
 
-class DistutilsSetupError(DistutilsError):
-    """For errors that can be definitely blamed on the setup script,
-    such as invalid keyword arguments to 'setup()'."""
-
-    pass
-
-
-class DistutilsPlatformError(DistutilsError):
-    """We don't know how to do something on the current platform (but
-    we do know how to do it on some platform) -- eg. trying to compile
-    C files on a platform not supported by a CCompiler subclass."""
-
-    pass
-
-
-class DistutilsExecError(DistutilsError):
-    """Any problems executing an external program (such as the C
-    compiler, when compiling C files)."""
-
-    pass
-
-
-class DistutilsInternalError(DistutilsError):
-    """Internal inconsistencies or impossibilities (obviously, this
-    should never be seen if the code is working!)."""
-
-    pass
-
-
-class DistutilsTemplateError(DistutilsError):
-    """Syntax error in a file list template."""
-
-
-class DistutilsByteCompileError(DistutilsError):
-    """Byte compile error."""
-
-
-# Exception classes used by the CCompiler implementation classes
-class CCompilerError(Exception):
-    """Some compile/link operation failed."""
-
-
-class PreprocessError(CCompilerError):
-    """Failure to preprocess one or more C/C++ files."""
-
-
-class CompileError(CCompilerError):
-    """Failure to compile one or more C/C++ source files."""
-
-
-class LibError(CCompilerError):
-    """Failure to create a static library from one or more C/C++ object
-    files."""
-
-
-class LinkError(CCompilerError):
-    """Failure to link one or more C/C++ object files into an executable
-    or shared library file."""
-
-
-class UnknownFileError(CCompilerError):
-    """Attempt to process an unknown file type."""
+    .. [*] Since multi-package distributions are uncommon it is very likely that the
+       developers did not intend for all the directories to be packaged, and are just
+       leaving auxiliary code in the repository top-level, such as maintenance-related
+       scripts.
+    """
