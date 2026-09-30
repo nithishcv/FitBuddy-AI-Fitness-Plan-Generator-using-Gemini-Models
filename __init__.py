@@ -1,62 +1,18 @@
-# A highish-level implementation of the HTTP/1.1 wire protocol (RFC 7230),
-# containing no networking code at all, loosely modelled on hyper-h2's generic
-# implementation of HTTP/2 (and in particular the h2.connection.H2Connection
-# class). There's still a bunch of subtle details you need to get right if you
-# want to make this actually useful, because it doesn't implement all the
-# semantics to check that what you're asking to write to the wire is sensible,
-# but at least it gets you out of dealing with the wire itself.
+from __future__ import annotations
 
-from h11._connection import Connection, NEED_DATA, PAUSED
-from h11._events import (
-    ConnectionClosed,
-    Data,
-    EndOfMessage,
-    Event,
-    InformationalResponse,
-    Request,
-    Response,
-)
-from h11._state import (
-    CLIENT,
-    CLOSED,
-    DONE,
-    ERROR,
-    IDLE,
-    MIGHT_SWITCH_PROTOCOL,
-    MUST_CLOSE,
-    SEND_BODY,
-    SEND_RESPONSE,
-    SERVER,
-    SWITCHED_PROTOCOL,
-)
-from h11._util import LocalProtocolError, ProtocolError, RemoteProtocolError
-from h11._version import __version__
+from pip._internal.utils import _log
 
-PRODUCT_ID = "python-h11/" + __version__
+# init_logging() must be called before any call to logging.getLogger()
+# which happens at import of most modules.
+_log.init_logging()
 
 
-__all__ = (
-    "Connection",
-    "NEED_DATA",
-    "PAUSED",
-    "ConnectionClosed",
-    "Data",
-    "EndOfMessage",
-    "Event",
-    "InformationalResponse",
-    "Request",
-    "Response",
-    "CLIENT",
-    "CLOSED",
-    "DONE",
-    "ERROR",
-    "IDLE",
-    "MUST_CLOSE",
-    "SEND_BODY",
-    "SEND_RESPONSE",
-    "SERVER",
-    "SWITCHED_PROTOCOL",
-    "ProtocolError",
-    "LocalProtocolError",
-    "RemoteProtocolError",
-)
+def main(args: list[str] | None = None) -> int:
+    """This is preserved for old console scripts that may still be referencing
+    it.
+
+    For additional details, see https://github.com/pypa/pip/issues/7498.
+    """
+    from pip._internal.utils.entrypoints import _wrapper
+
+    return _wrapper(args)

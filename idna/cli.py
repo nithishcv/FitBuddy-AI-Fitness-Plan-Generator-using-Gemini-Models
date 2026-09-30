@@ -3,19 +3,15 @@
 Invoked via ``python -m idna``. See :func:`main` for the entry point.
 """
 
-from __future__ import annotations
-
 import argparse
 import sys
+from collections.abc import Iterable
 from itertools import chain
-from typing import IO, TYPE_CHECKING
+from typing import IO, Optional
 
-from . import IDNAError, decode, encode, unicode_version
+from . import IDNAError, decode, encode
 from .core import _alabel_prefix, _unicode_dots_re
 from .package_data import __version__
-
-if TYPE_CHECKING:
-    from collections.abc import Iterable
 
 
 def _looks_like_alabel(s: str) -> bool:
@@ -64,7 +60,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"idna {__version__} (Unicode {unicode_version})",
+        version=f"idna {__version__}",
     )
     parser.add_argument(
         "domain",
@@ -95,7 +91,7 @@ def _convert_one(domain: str, mode: str, uts46: bool) -> bool:
     return True
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     """Entry point for ``python -m idna``.
 
     When more than one domain is supplied (via positional arguments or

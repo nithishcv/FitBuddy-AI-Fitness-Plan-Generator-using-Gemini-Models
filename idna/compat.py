@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from typing import Any
+from typing import Any, Union
 
 from .core import decode, encode
 
@@ -18,7 +16,7 @@ def ToASCII(label: str) -> bytes:
     return encode(label)
 
 
-def ToUnicode(label: bytes | bytearray) -> str:
+def ToUnicode(label: Union[bytes, bytearray]) -> str:
     """Compatibility shim for :rfc:`3490` ``ToUnicode``.
 
     Delegates to :func:`idna.decode` (IDNA 2008). Provided to ease porting
