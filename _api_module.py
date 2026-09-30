@@ -13,13 +13,17 @@
 # limitations under the License.
 #
 
-"""Google Gen AI SDK"""
+"""Utilities for the API Modules of the Google Gen AI SDK."""
 
-from . import types
-from . import version
-from .client import Client
+from typing import Optional
+from . import _api_client
 
 
-__version__ = version.__version__
+class BaseModule:
 
-__all__ = ['Client']
+  def __init__(self, api_client_: _api_client.BaseApiClient):
+    self._api_client = api_client_
+
+  @property
+  def vertexai(self) -> Optional[bool]:
+    return self._api_client.vertexai

@@ -13,13 +13,14 @@
 # limitations under the License.
 #
 
-"""Google Gen AI SDK"""
+"""Base transformers for Google GenAI SDK."""
+import base64
 
-from . import types
-from . import version
-from .client import Client
-
-
-__version__ = version.__version__
-
-__all__ = ['Client']
+# Some fields don't accept url safe base64 encoding.
+# We shouldn't use this transformer if the backend adhere to Cloud Type
+# format https://cloud.google.com/docs/discovery/type-format.
+# TODO(b/389133914,b/390320301): Remove the hack after backend fix the issue.
+def t_bytes(data: bytes) -> str:
+  if not isinstance(data, bytes):
+    return data
+  return base64.b64encode(data).decode('ascii')
