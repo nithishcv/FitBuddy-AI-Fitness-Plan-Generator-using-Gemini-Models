@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}
+FitBuddy — Generate a Plan
+{% endblock %}
+
+
+{% block content %}
+
+<section class="hero">
+
+    <div>
+
+        <p class="eyebrow">
+            AI FITNESS PLANNER
+        </p>
+
+
+        <h1>
+            Build a
+            <span>7-day</span>
+            fitness routine.
+        </h1>
+
+
+        <p class="lead">
+
+            Tell FitBuddy about your goal and
+            preferred intensity.
+
+            Gemini creates a structured workout
+            plan and a practical nutrition or
+            recovery tip.
+
+        </p>
+
+    </div>
+
+
+    <div class="card form-card">
+
+        <h2>
+            Your profile
+        </h2>
+
+
+        <form
+            action="/generate-workout"
+            method="post"
+            id="plan-form"
+        >
+
+            <div class="grid two">
+
+                <label>
+
+                    Name
+
+                    <input
+                        name="name"
+                        required
+                        minlength="2"
+                        maxlength="120"
+                        placeholder="Your name"
+                    >
+
+                </label>
+
+
+                <label>
+
+                    User ID
+
+                    <input
+                        name="user_id"
+                        required
+                        minlength="2"
+                        maxlength="80"
+                        pattern="[A-Za-z0-9_\x2d]+"
+                        placeholder="e.g. fitbuddy01"
+                    >
+
+                </label>
+
+            </div>
+
+
+            <div class="grid two">
+
+                <label>
+
+                    Age
+
+                    <input
+                        name="age"
+                        type="number"
+                        min="13"
+                        max="100"
+                        required
+                    >
+
+                </label>
+
+
+                <label>
+
+                    Weight (kg)
+
+                    <input
+                        name="weight"
+                        type="number"
+                        min="20.1"
+                        max="500"
+                        step="0.1"
+                        required
+                    >
+
+                </label>
+
+            </div>
+
+
+            <div class="grid two">
+
+                <label>
+
+                    Fitness goal
+
+                    <select
+                        name="goal"
+                        required
+                    >
+
+                        <option value="weight loss">
+                            Weight loss
+                        </option>
+
+                        <option value="muscle gain">
+                            Muscle gain
+                        </option>
+
+                        <option value="general wellness">
+                            General wellness
+                        </option>
+
+                        <option value="flexibility">
+                            Flexibility
+                        </option>
+
+                        <option value="fitness">
+                            General fitness
+                        </option>
+
+                    </select>
+
+                </label>
+
+
+                <label>
+
+                    Workout intensity
+
+                    <select
+                        name="intensity"
+                        required
+                    >
+
+                        <option value="low">
+                            Low
+                        </option>
+
+                        <option
+                            value="medium"
+                            selected
+                        >
+                            Medium
+                        </option>
+
+                        <option value="high">
+                            High
+                        </option>
+
+                    </select>
+
+                </label>
+
+            </div>
+
+
+            <div class="notice">
+
+                For injuries, medical conditions,
+                pregnancy, or other special circumstances,
+                use guidance from a qualified professional
+                rather than relying on an AI-generated plan.
+
+            </div>
+
+
+            <button
+                class="button"
+                type="submit"
+            >
+
+                Generate my plan
+
+            </button>
+
+        </form>
+
+    </div>
+
+</section>
+
+{% endblock %}

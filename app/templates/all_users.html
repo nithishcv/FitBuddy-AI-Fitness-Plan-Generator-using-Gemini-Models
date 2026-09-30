@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}
+FitBuddy — Dashboard
+{% endblock %}
+
+
+{% block content %}
+
+<section class="page-head">
+
+    <div>
+
+        <p class="eyebrow">
+            ADMIN / COACH VIEW
+        </p>
+
+
+        <h1>
+            All users
+        </h1>
+
+
+        <p class="muted">
+
+            Stored FitBuddy profiles and their
+            original/latest plans.
+
+        </p>
+
+    </div>
+
+</section>
+
+
+{% if users %}
+
+    {% for user in users %}
+
+    <article class="card admin-card">
+
+        <div class="user-header">
+
+            <div>
+
+                <h2>
+                    {{ user.name }}
+                </h2>
+
+                <span class="muted">
+
+                    ID:
+                    {{ user.user_id }}
+
+                </span>
+
+            </div>
+
+
+            <div class="chips">
+
+                <span>
+                    {{ user.goal|title }}
+                </span>
+
+                <span>
+                    {{ user.intensity|title }}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="grid three compact">
+
+            <div>
+
+                <b>
+                    Age
+                </b>
+
+                <br>
+
+                {{ user.age }}
+
+            </div>
+
+
+            <div>
+
+                <b>
+                    Weight
+                </b>
+
+                <br>
+
+                {{ user.weight }}
+                kg
+
+            </div>
+
+
+            <div>
+
+                <b>
+                    Plans
+                </b>
+
+                <br>
+
+                {{ user.plans|length }}
+
+            </div>
+
+        </div>
+
+
+        {% for plan in user.plans %}
+
+        <details>
+
+            <summary>
+
+                Plan #{{ plan.id }}
+
+                —
+
+                {{
+                    'Updated'
+                    if plan.updated_plan
+                    else 'Original only'
+                }}
+
+            </summary>
+
+
+            <p>
+
+                <b>
+                    Nutrition tip:
+                </b>
+
+                {{ plan.nutrition_tip }}
+
+            </p>
+
+
+            {% if plan.last_feedback %}
+
+            <p>
+
+                <b>
+                    Last feedback:
+                </b>
+
+                {{ plan.last_feedback }}
+
+            </p>
+
+            {% endif %}
+
+
+            <pre>{{ plan.updated_plan or plan.original_plan }}</pre>
+
+        </details>
+
+        {% endfor %}
+
+    </article>
+
+    {% endfor %}
+
+{% else %}
+
+    <div class="card empty">
+
+        No users have been registered yet.
+
+    </div>
+
+{% endif %}
+
+{% endblock %}

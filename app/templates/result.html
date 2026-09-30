@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}
+FitBuddy — Your Plan
+{% endblock %}
+
+
+{% block content %}
+
+<section class="page-head">
+
+    <div>
+
+        <p class="eyebrow">
+            PERSONALIZED PLAN
+        </p>
+
+
+        <h1>
+            {{ user.name }}'s FitBuddy plan
+        </h1>
+
+
+        <p class="muted">
+
+            {{ user.goal|title }}
+            •
+            {{ user.intensity|title }} intensity
+            •
+            {{ user.age }} years
+            •
+            {{ user.weight }} kg
+
+        </p>
+
+    </div>
+
+
+    {% if message %}
+
+    <div class="success">
+
+        {{ message }}
+
+    </div>
+
+    {% endif %}
+
+</section>
+
+
+<section class="stats grid four">
+
+    <div class="stat">
+
+        <span>
+            User ID
+        </span>
+
+        <strong>
+            {{ user.user_id }}
+        </strong>
+
+    </div>
+
+
+    <div class="stat">
+
+        <span>
+            Goal
+        </span>
+
+        <strong>
+            {{ user.goal|title }}
+        </strong>
+
+    </div>
+
+
+    <div class="stat">
+
+        <span>
+            Intensity
+        </span>
+
+        <strong>
+            {{ user.intensity|title }}
+        </strong>
+
+    </div>
+
+
+    <div class="stat">
+
+        <span>
+            Plan ID
+        </span>
+
+        <strong>
+            #{{ plan_id }}
+        </strong>
+
+    </div>
+
+</section>
+
+
+<section class="days">
+
+    {% for day in plan.days %}
+
+    <article class="card day-card">
+
+        <div class="day-title">
+
+            <span>
+                {{ day.day }}
+            </span>
+
+            <strong>
+                {{ day.focus }}
+            </strong>
+
+        </div>
+
+
+        <div class="mini">
+
+            <b>
+                Warm-up:
+            </b>
+
+            {{ day.warmup }}
+
+        </div>
+
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Exercise
+                        </th>
+
+                        <th>
+                            Sets
+                        </th>
+
+                        <th>
+                            Reps / Duration
+                        </th>
+
+                        <th>
+                            Rest
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for exercise in day.exercises %}
+
+                    <tr>
+
+                        <td>
+                            {{ exercise.name }}
+                        </td>
+
+                        <td>
+                            {{ exercise.sets }}
+                        </td>
+
+                        <td>
+                            {{ exercise.reps_or_duration }}
+                        </td>
+
+                        <td>
+                            {{ exercise.rest }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <div class="mini">
+
+            <b>
+                Cooldown / recovery:
+            </b>
+
+            {{ day.cooldown }}
+
+        </div>
+
+    </article>
+
+    {% endfor %}
+
+</section>
+
+
+<section class="card tip-card">
+
+    <p class="eyebrow">
+        NUTRITION / RECOVERY TIP
+    </p>
+
+
+    <p>
+        {{ nutrition_tip }}
+    </p>
+
+</section>
+
+
+<section class="card feedback-card">
+
+    <p class="eyebrow">
+        REFINE YOUR PLAN
+    </p>
+
+
+    <h2>
+        What would you like to change?
+    </h2>
+
+
+    <p class="muted">
+
+        Examples:
+        "Add more cardio",
+        "make the routine easier",
+        or
+        "include another recovery day".
+
+    </p>
+
+
+    <form
+        action="/submit-feedback"
+        method="post"
+    >
+
+        <input
+            type="hidden"
+            name="user_id"
+            value="{{ user.user_id }}"
+        >
+
+
+        <textarea
+            name="feedback"
+            minlength="5"
+            maxlength="1200"
+            required
+            placeholder="Describe the change you want..."
+        ></textarea>
+
+
+        <button
+            class="button"
+            type="submit"
+        >
+
+            Update plan with AI
+
+        </button>
+
+    </form>
+
+</section>
+
+{% endblock %}

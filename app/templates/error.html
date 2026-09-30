@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}
+FitBuddy — Error
+{% endblock %}
+
+
+{% block content %}
+
+<div class="card error-card">
+
+    <p class="eyebrow">
+        SOMETHING WENT WRONG
+    </p>
+
+
+    <h1>
+        We couldn't complete that request.
+    </h1>
+
+
+    <p>
+        {{ message }}
+    </p>
+
+    {% if "admin key" in message|lower %}
+    <form action="/view-all-users" method="get" style="margin: 1.5rem auto; max-width: 320px; display: flex; flex-direction: column; gap: 0.75rem;">
+        <input type="password" name="admin_key" placeholder="Enter Admin Key" required style="padding: 0.6rem 0.8rem; border: 1px solid #ccc; border-radius: 6px;">
+        <button type="submit" class="button">Unlock Dashboard</button>
+    </form>
+    {% endif %}
+
+    <a
+        class="button inline"
+        href="/"
+    >
+        Back to FitBuddy
+    </a>
+
+</div>
+
+{% endblock %}

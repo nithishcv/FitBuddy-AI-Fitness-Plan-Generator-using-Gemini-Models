@@ -1,0 +1,97 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>
+        {% block title %}
+        FitBuddy
+        {% endblock %}
+    </title>
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', path='styles.css') }}?v=1"
+    >
+
+</head>
+
+
+<body>
+
+<header class="topbar">
+
+    <a
+        class="brand"
+        href="/"
+    >
+        Fit<span>Buddy</span>
+    </a>
+
+
+    <nav>
+
+        <a href="/">
+            Generate
+        </a>
+
+        <a href="/view-all-users">
+            Dashboard
+        </a>
+
+        <a href="/docs">
+            API Docs
+        </a>
+
+    </nav>
+
+</header>
+
+
+<main class="container">
+
+    {% block content %}
+    {% endblock %}
+
+</main>
+
+
+<footer>
+
+    FitBuddy • AI-assisted wellness planning •
+    Not medical advice
+
+</footer>
+
+
+<script
+    src="{{ url_for('static', path='app.js') }}?v=1"
+></script>
+
+</body>
+
+</html>
